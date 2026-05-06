@@ -82,12 +82,6 @@ uses browser-internal JavaScript.
 ```bash
 xdg-open firmware-audit-report.html   # Linux
 ```
-
-
-### Option C — Internal GitLab/GitHub Pages
-
-Simply place the three files in a repo — Pages serves them statically.
-
 ---
 
 ## Data Protection
@@ -95,22 +89,3 @@ Simply place the three files in a repo — Pages serves them statically.
 The audit script sends **nothing** over the network. The HTML file is offline-capable
 (only external resource: Google Fonts — switch to local fonts if needed,
 see below).
-
-
-## Workflow Example
-
-```bash
-# On the host to be audited:
-sudo ./firmware-audit.sh
-# → firmware-audit-srv01-20260506-143022.json
-
-# Copy file to the auditor's computer
-scp firmware-audit-srv01-*.json auditor@workstation:/home/auditor/audits/
-
-# Auditor opens firmware-audit-report.html, clicks “Import JSON”
-# → Fills in notes, checks for warning/fail items
-# → Clicks “Print / PDF” for archiving
-# → Clicks “Export JSON” to save the enriched version
-```
-
----
