@@ -1,0 +1,1142 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Firmware Audit Report</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500;700&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg-0: #0a0e1a;
+    --bg-1: #111726;
+    --bg-2: #1a2235;
+    --bg-3: #232d44;
+    --line: #2a3654;
+    --line-soft: #1f2940;
+    --text: #e6ebf5;
+    --text-dim: #8a96b3;
+    --text-faint: #5a6685;
+    --amber: #ffb454;
+    --amber-soft: rgba(255, 180, 84, 0.12);
+    --green: #7cdba8;
+    --green-soft: rgba(124, 219, 168, 0.12);
+    --red: #ff7878;
+    --red-soft: rgba(255, 120, 120, 0.12);
+    --cyan: #6cc7e8;
+    --cyan-soft: rgba(108, 199, 232, 0.10);
+    --grain: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%' height='100%' filter='url(%23n)' opacity='0.4'/></svg>");
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body {
+    margin: 0;
+    padding: 0;
+    background: var(--bg-0);
+    color: var(--text);
+    font-family: 'IBM Plex Sans', -apple-system, sans-serif;
+    font-weight: 300;
+    line-height: 1.55;
+    font-size: 15px;
+  }
+
+  body {
+    background-image:
+      radial-gradient(circle at 15% 0%, rgba(255, 180, 84, 0.04), transparent 40%),
+      radial-gradient(circle at 85% 100%, rgba(108, 199, 232, 0.04), transparent 40%);
+    background-attachment: fixed;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: var(--grain);
+    opacity: 0.03;
+    pointer-events: none;
+    z-index: 1;
+    mix-blend-mode: overlay;
+  }
+
+  .layout {
+    max-width: 1280px;
+    margin: 0 auto;
+    padding: 48px 56px 96px;
+    position: relative;
+    z-index: 2;
+  }
+
+  /* ===== HEADER ===== */
+  header {
+    border-bottom: 1px solid var(--line);
+    padding-bottom: 40px;
+    margin-bottom: 56px;
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 32px;
+    align-items: end;
+  }
+
+  .header-mark {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.18em;
+    color: var(--amber);
+    text-transform: uppercase;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .header-mark::before {
+    content: '';
+    width: 6px;
+    height: 6px;
+    background: var(--amber);
+    border-radius: 50%;
+    box-shadow: 0 0 12px var(--amber);
+    animation: pulse 2s ease-in-out infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
+
+  h1 {
+    font-family: 'Instrument Serif', serif;
+    font-weight: 400;
+    font-size: 64px;
+    line-height: 1.05;
+    letter-spacing: -0.02em;
+    margin: 0 0 12px;
+  }
+
+  h1 em {
+    font-style: italic;
+    color: var(--amber);
+  }
+
+  .subtitle {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: var(--text-dim);
+    letter-spacing: 0.05em;
+  }
+
+  .header-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    text-align: right;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--text-dim);
+  }
+
+  .header-meta strong {
+    color: var(--text);
+    font-weight: 500;
+  }
+
+  /* ===== META BAR ===== */
+  .meta-bar {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1px;
+    background: var(--line);
+    border: 1px solid var(--line);
+    margin-bottom: 56px;
+  }
+
+  .meta-cell {
+    background: var(--bg-1);
+    padding: 20px 24px;
+  }
+
+  .meta-cell label {
+    display: block;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.18em;
+    color: var(--text-faint);
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+
+  .meta-cell .value {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 14px;
+    color: var(--text);
+    font-weight: 500;
+    outline: none;
+    border-bottom: 1px dashed transparent;
+    transition: border-color 0.2s;
+  }
+
+  .meta-cell .value[contenteditable="true"]:hover,
+  .meta-cell .value[contenteditable="true"]:focus {
+    border-bottom-color: var(--amber);
+  }
+
+  /* ===== SECTIONS ===== */
+  section.audit {
+    margin-bottom: 64px;
+    border-left: 1px solid var(--line);
+    padding-left: 32px;
+    position: relative;
+  }
+
+  section.audit::before {
+    content: '';
+    position: absolute;
+    left: -1px;
+    top: 0;
+    width: 1px;
+    height: 40px;
+    background: var(--amber);
+  }
+
+  .section-head {
+    display: flex;
+    align-items: baseline;
+    gap: 24px;
+    margin-bottom: 8px;
+  }
+
+  .section-num {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--amber);
+    letter-spacing: 0.1em;
+  }
+
+  h2 {
+    font-family: 'Instrument Serif', serif;
+    font-weight: 400;
+    font-size: 36px;
+    margin: 0;
+    letter-spacing: -0.01em;
+  }
+
+  .section-desc {
+    color: var(--text-dim);
+    font-size: 14px;
+    margin: 0 0 32px;
+    max-width: 640px;
+  }
+
+  /* ===== CHECK ITEM ===== */
+  .check {
+    border: 1px solid var(--line-soft);
+    background: var(--bg-1);
+    margin-bottom: 16px;
+    overflow: hidden;
+    transition: border-color 0.2s;
+  }
+
+  .check:hover { border-color: var(--line); }
+
+  .check-head {
+    display: grid;
+    grid-template-columns: auto 1fr auto auto;
+    align-items: center;
+    gap: 20px;
+    padding: 18px 24px;
+    cursor: pointer;
+    user-select: none;
+    transition: background 0.15s;
+  }
+
+  .check-head:hover {
+    background: var(--bg-2);
+  }
+
+  .check-toggle {
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--text-faint);
+    font-size: 12px;
+    width: 12px;
+    transition: transform 0.2s;
+  }
+
+  .check.open .check-toggle {
+    transform: rotate(90deg);
+  }
+
+  .check-title {
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-weight: 500;
+    font-size: 15px;
+    color: var(--text);
+  }
+
+  .check-cmd {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--cyan);
+    background: var(--cyan-soft);
+    padding: 4px 10px;
+    border-radius: 2px;
+  }
+
+  /* ===== STATUS BADGES ===== */
+  .status {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    padding: 5px 10px;
+    border-radius: 2px;
+    cursor: pointer;
+    user-select: none;
+    transition: all 0.15s;
+    border: 1px solid transparent;
+  }
+
+  .status[data-status="pending"] {
+    color: var(--text-faint);
+    background: var(--bg-3);
+    border-color: var(--line);
+  }
+
+  .status[data-status="pass"] {
+    color: var(--green);
+    background: var(--green-soft);
+    border-color: rgba(124, 219, 168, 0.3);
+  }
+
+  .status[data-status="warn"] {
+    color: var(--amber);
+    background: var(--amber-soft);
+    border-color: rgba(255, 180, 84, 0.3);
+  }
+
+  .status[data-status="fail"] {
+    color: var(--red);
+    background: var(--red-soft);
+    border-color: rgba(255, 120, 120, 0.3);
+  }
+
+  /* ===== CHECK BODY ===== */
+  .check-body {
+    display: none;
+    border-top: 1px solid var(--line-soft);
+    padding: 24px;
+    background: var(--bg-0);
+  }
+
+  .check.open .check-body {
+    display: block;
+    animation: slideDown 0.25s ease;
+  }
+
+  @keyframes slideDown {
+    from { opacity: 0; transform: translateY(-4px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .check-body label {
+    display: block;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.18em;
+    color: var(--text-faint);
+    text-transform: uppercase;
+    margin: 0 0 8px;
+  }
+
+  .check-body label:not(:first-child) { margin-top: 20px; }
+
+  .terminal {
+    background: #060914;
+    border: 1px solid var(--line);
+    border-radius: 2px;
+    padding: 18px 20px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12.5px;
+    line-height: 1.65;
+    color: #c9d4ec;
+    overflow-x: auto;
+    outline: none;
+    min-height: 60px;
+    white-space: pre-wrap;
+    transition: border-color 0.2s;
+  }
+
+  .terminal:hover, .terminal:focus { border-color: var(--cyan); }
+
+  .terminal[contenteditable="true"]:empty::before {
+    content: '› paste output here…';
+    color: var(--text-faint);
+    font-style: italic;
+  }
+
+  .notes {
+    background: transparent;
+    border: 1px dashed var(--line);
+    padding: 14px 18px;
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 14px;
+    color: var(--text-dim);
+    outline: none;
+    min-height: 40px;
+    transition: border-color 0.2s;
+  }
+
+  .notes:hover, .notes:focus { border-color: var(--amber); border-style: solid; color: var(--text); }
+
+  .notes[contenteditable="true"]:empty::before {
+    content: 'add notes / interpretation…';
+    color: var(--text-faint);
+    font-style: italic;
+  }
+
+  /* ===== TOOLBAR ===== */
+  .toolbar {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    display: flex;
+    gap: 8px;
+    z-index: 100;
+  }
+
+  .toolbar button {
+    background: var(--bg-2);
+    border: 1px solid var(--line);
+    color: var(--text);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 12px 18px;
+    cursor: pointer;
+    transition: all 0.15s;
+    border-radius: 2px;
+  }
+
+  .toolbar button:hover {
+    background: var(--amber);
+    color: var(--bg-0);
+    border-color: var(--amber);
+  }
+
+  /* ===== SUMMARY BAR ===== */
+  .summary {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+    margin-bottom: 56px;
+  }
+
+  .summary-card {
+    background: var(--bg-1);
+    border: 1px solid var(--line);
+    padding: 24px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .summary-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 3px;
+    height: 100%;
+  }
+
+  .summary-card[data-tone="pass"]::before { background: var(--green); }
+  .summary-card[data-tone="warn"]::before { background: var(--amber); }
+  .summary-card[data-tone="fail"]::before { background: var(--red); }
+  .summary-card[data-tone="info"]::before { background: var(--cyan); }
+
+  .summary-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.2em;
+    color: var(--text-faint);
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+
+  .summary-value {
+    font-family: 'Instrument Serif', serif;
+    font-size: 48px;
+    font-weight: 400;
+    line-height: 1;
+  }
+
+  .summary-card[data-tone="pass"] .summary-value { color: var(--green); }
+  .summary-card[data-tone="warn"] .summary-value { color: var(--amber); }
+  .summary-card[data-tone="fail"] .summary-value { color: var(--red); }
+  .summary-card[data-tone="info"] .summary-value { color: var(--cyan); }
+
+  .summary-suffix {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--text-dim);
+    margin-left: 4px;
+  }
+
+  /* ===== FOOTER ===== */
+  footer {
+    margin-top: 96px;
+    padding-top: 32px;
+    border-top: 1px solid var(--line);
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    color: var(--text-faint);
+    text-transform: uppercase;
+  }
+
+  footer .signature {
+    font-family: 'Instrument Serif', serif;
+    font-style: italic;
+    font-size: 16px;
+    color: var(--text-dim);
+    text-transform: none;
+    letter-spacing: 0;
+  }
+
+  /* ===== PRINT ===== */
+  @media print {
+    body { background: white; color: #111; }
+    body::before { display: none; }
+    .toolbar { display: none; }
+    .layout { padding: 24px; max-width: 100%; }
+    .check, .check-body { background: white; color: #111; border-color: #ddd; }
+    .check.open .check-body { display: block !important; }
+    .terminal { background: #f7f7f7; color: #111; border-color: #ddd; }
+    h1, h2 { color: #111; }
+    .meta-bar, .summary-card { background: white; }
+    .meta-cell { background: #fafafa; }
+    section.audit { page-break-inside: avoid; }
+  }
+
+  @media (max-width: 900px) {
+    .layout { padding: 24px; }
+    h1 { font-size: 40px; }
+    .meta-bar, .summary { grid-template-columns: repeat(2, 1fr); }
+    header { grid-template-columns: 1fr; }
+    .header-meta { text-align: left; }
+    .check-head { grid-template-columns: auto 1fr auto; gap: 12px; }
+    .check-cmd { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<div class="layout">
+
+  <header>
+    <div>
+      <div class="header-mark">Hardware Security Audit · Linux</div>
+      <h1>Firmware <em>Integrity</em> Report</h1>
+      <div class="subtitle">// signed-firmware verification across platform components</div>
+    </div>
+    <div class="header-meta">
+      <div>REPORT-ID · <strong contenteditable="true" id="report-id">FW-AUDIT-001</strong></div>
+      <div>GENERATED · <strong id="report-date"></strong></div>
+      <div>VERSION · <strong>v1.0</strong></div>
+    </div>
+  </header>
+
+  <!-- ===== META ===== -->
+  <div class="meta-bar">
+    <div class="meta-cell">
+      <label>Hostname</label>
+      <div class="value" contenteditable="true">my-machine</div>
+    </div>
+    <div class="meta-cell">
+      <label>Distribution</label>
+      <div class="value" contenteditable="true">Ubuntu 24.04 LTS</div>
+    </div>
+    <div class="meta-cell">
+      <label>Kernel</label>
+      <div class="value" contenteditable="true">6.8.0-generic</div>
+    </div>
+    <div class="meta-cell">
+      <label>Auditor</label>
+      <div class="value" contenteditable="true">—</div>
+    </div>
+  </div>
+
+  <!-- ===== SUMMARY ===== -->
+  <div class="summary">
+    <div class="summary-card" data-tone="pass">
+      <div class="summary-label">Passed</div>
+      <div><span class="summary-value" id="cnt-pass">0</span><span class="summary-suffix">/ checks</span></div>
+    </div>
+    <div class="summary-card" data-tone="warn">
+      <div class="summary-label">Warnings</div>
+      <div><span class="summary-value" id="cnt-warn">0</span><span class="summary-suffix">/ review</span></div>
+    </div>
+    <div class="summary-card" data-tone="fail">
+      <div class="summary-label">Failed</div>
+      <div><span class="summary-value" id="cnt-fail">0</span><span class="summary-suffix">/ critical</span></div>
+    </div>
+    <div class="summary-card" data-tone="info">
+      <div class="summary-label">Pending</div>
+      <div><span class="summary-value" id="cnt-pending">0</span><span class="summary-suffix">/ open</span></div>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       SECTION 01 — PLATFORM SECURITY (fwupd / LVFS)
+  ============================================================ -->
+  <section class="audit" data-section="01">
+    <div class="section-head">
+      <span class="section-num">§ 01</span>
+      <h2>Platform & fwupd</h2>
+    </div>
+    <p class="section-desc">Plattformweite Sicherheitsbewertung über <code>fwupd</code> und das LVFS-Repository. Liefert die Host Security ID (HSI) und prüft, welche Geräte signierte Firmware-Quellen besitzen.</p>
+
+    <div class="check">
+      <div class="check-head" onclick="toggleCheck(this)">
+        <span class="check-toggle">›</span>
+        <span class="check-title">Host Security ID (HSI)</span>
+        <span class="check-cmd">fwupdmgr security</span>
+        <span class="status" data-status="pending" onclick="cycleStatus(event, this)">pending</span>
+      </div>
+      <div class="check-body">
+        <label>Output</label>
+        <div class="terminal" contenteditable="true"></div>
+        <label>Notes</label>
+        <div class="notes" contenteditable="true"></div>
+      </div>
+    </div>
+
+    <div class="check">
+      <div class="check-head" onclick="toggleCheck(this)">
+        <span class="check-toggle">›</span>
+        <span class="check-title">Geräte mit signierter Firmware-Quelle</span>
+        <span class="check-cmd">fwupdmgr get-devices</span>
+        <span class="status" data-status="pending" onclick="cycleStatus(event, this)">pending</span>
+      </div>
+      <div class="check-body">
+        <label>Output</label>
+        <div class="terminal" contenteditable="true"></div>
+        <label>Notes</label>
+        <div class="notes" contenteditable="true"></div>
+      </div>
+    </div>
+
+    <div class="check">
+      <div class="check-head" onclick="toggleCheck(this)">
+        <span class="check-toggle">›</span>
+        <span class="check-title">Verfügbare signierte Updates</span>
+        <span class="check-cmd">fwupdmgr get-updates</span>
+        <span class="status" data-status="pending" onclick="cycleStatus(event, this)">pending</span>
+      </div>
+      <div class="check-body">
+        <label>Output</label>
+        <div class="terminal" contenteditable="true"></div>
+        <label>Notes</label>
+        <div class="notes" contenteditable="true"></div>
+      </div>
+    </div>
+
+    <div class="check">
+      <div class="check-head" onclick="toggleCheck(this)">
+        <span class="check-toggle">›</span>
+        <span class="check-title">Update-Historie</span>
+        <span class="check-cmd">fwupdmgr get-history</span>
+        <span class="status" data-status="pending" onclick="cycleStatus(event, this)">pending</span>
+      </div>
+      <div class="check-body">
+        <label>Output</label>
+        <div class="terminal" contenteditable="true"></div>
+        <label>Notes</label>
+        <div class="notes" contenteditable="true"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       SECTION 02 — STORAGE
+  ============================================================ -->
+  <section class="audit" data-section="02">
+    <div class="section-head">
+      <span class="section-num">§ 02</span>
+      <h2>Storage <em>·</em> SSD / NVMe</h2>
+    </div>
+    <p class="section-desc">Firmware-Versionen und Slot-Status der angeschlossenen Datenträger. NVMe-Controller akzeptieren beim Flash-Vorgang typischerweise nur vom Hersteller signierte Firmware-Pakete.</p>
+
+    <div class="check">
+      <div class="check-head" onclick="toggleCheck(this)">
+        <span class="check-toggle">›</span>
+        <span class="check-title">NVMe-Geräteliste</span>
+        <span class="check-cmd">sudo nvme list</span>
+        <span class="status" data-status="pending" onclick="cycleStatus(event, this)">pending</span>
+      </div>
+      <div class="check-body">
+        <label>Output</label>
+        <div class="terminal" contenteditable="true"></div>
+        <label>Notes</label>
+        <div class="notes" contenteditable="true"></div>
+      </div>
+    </div>
+
+    <div class="check">
+      <div class="check-head" onclick="toggleCheck(this)">
+        <span class="check-toggle">›</span>
+        <span class="check-title">NVMe Firmware-Slots</span>
+        <span class="check-cmd">sudo nvme fw-log /dev/nvme0</span>
+        <span class="status" data-status="pending" onclick="cycleStatus(event, this)">pending</span>
+      </div>
+      <div class="check-body">
+        <label>Output</label>
+        <div class="terminal" contenteditable="true"></div>
+        <label>Notes</label>
+        <div class="notes" contenteditable="true"></div>
+      </div>
+    </div>
+
+    <div class="check">
+      <div class="check-head" onclick="toggleCheck(this)">
+        <span class="check-toggle">›</span>
+        <span class="check-title">SATA-Datenträger Identität</span>
+        <span class="check-cmd">sudo smartctl -i /dev/sda</span>
+        <span class="status" data-status="pending" onclick="cycleStatus(event, this)">pending</span>
+      </div>
+      <div class="check-body">
+        <label>Output</label>
+        <div class="terminal" contenteditable="true"></div>
+        <label>Notes</label>
+        <div class="notes" contenteditable="true"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       SECTION 03 — NETWORK
+  ============================================================ -->
+  <section class="audit" data-section="03">
+    <div class="section-head">
+      <span class="section-num">§ 03</span>
+      <h2>Network Interfaces</h2>
+    </div>
+    <p class="section-desc">Treiber- und Firmware-Stand der Netzwerkadapter. Geladene Firmware-Blobs aus <code>/lib/firmware/</code> werden gegen die Distributions-Signatur geprüft.</p>
+
+    <div class="check">
+      <div class="check-head" onclick="toggleCheck(this)">
+        <span class="check-toggle">›</span>
+        <span class="check-title">NIC Firmware-Version</span>
+        <span class="check-cmd">sudo ethtool -i &lt;iface&gt;</span>
+        <span class="status" data-status="pending" onclick="cycleStatus(event, this)">pending</span>
+      </div>
+      <div class="check-body">
+        <label>Output</label>
+        <div class="terminal" contenteditable="true"></div>
+        <label>Notes</label>
+        <div class="notes" contenteditable="true"></div>
+      </div>
+    </div>
+
+    <div class="check">
+      <div class="check-head" onclick="toggleCheck(this)">
+        <span class="check-toggle">›</span>
+        <span class="check-title">Geladene Firmware-Blobs (Kernel-Log)</span>
+        <span class="check-cmd">sudo dmesg | grep -i firmware</span>
+        <span class="status" data-status="pending" onclick="cycleStatus(event, this)">pending</span>
+      </div>
+      <div class="check-body">
+        <label>Output</label>
+        <div class="terminal" contenteditable="true"></div>
+        <label>Notes</label>
+        <div class="notes" contenteditable="true"></div>
+      </div>
+    </div>
+
+    <div class="check">
+      <div class="check-head" onclick="toggleCheck(this)">
+        <span class="check-toggle">›</span>
+        <span class="check-title">linux-firmware Paket-Integrität</span>
+        <span class="check-cmd">debsums linux-firmware</span>
+        <span class="status" data-status="pending" onclick="cycleStatus(event, this)">pending</span>
+      </div>
+      <div class="check-body">
+        <label>Output</label>
+        <div class="terminal" contenteditable="true"></div>
+        <label>Notes</label>
+        <div class="notes" contenteditable="true"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       SECTION 04 — UEFI / BIOS
+  ============================================================ -->
+  <section class="audit" data-section="04">
+    <div class="section-head">
+      <span class="section-num">§ 04</span>
+      <h2>UEFI / BIOS</h2>
+    </div>
+    <p class="section-desc">Plattform-Firmware, Secure Boot State und eingetragene Schlüssel. Bestimmt die Vertrauensbasis der gesamten Boot-Kette.</p>
+
+    <div class="check">
+      <div class="check-head" onclick="toggleCheck(this)">
+        <span class="check-toggle">›</span>
+        <span class="check-title">BIOS/UEFI Identifikation</span>
+        <span class="check-cmd">sudo dmidecode -t bios</span>
+        <span class="status" data-status="pending" onclick="cycleStatus(event, this)">pending</span>
+      </div>
+      <div class="check-body">
+        <label>Output</label>
+        <div class="terminal" contenteditable="true"></div>
+        <label>Notes</label>
+        <div class="notes" contenteditable="true"></div>
+      </div>
+    </div>
+
+    <div class="check">
+      <div class="check-head" onclick="toggleCheck(this)">
+        <span class="check-toggle">›</span>
+        <span class="check-title">Secure Boot Status</span>
+        <span class="check-cmd">mokutil --sb-state</span>
+        <span class="status" data-status="pending" onclick="cycleStatus(event, this)">pending</span>
+      </div>
+      <div class="check-body">
+        <label>Output</label>
+        <div class="terminal" contenteditable="true"></div>
+        <label>Notes</label>
+        <div class="notes" contenteditable="true"></div>
+      </div>
+    </div>
+
+    <div class="check">
+      <div class="check-head" onclick="toggleCheck(this)">
+        <span class="check-toggle">›</span>
+        <span class="check-title">Eingetragene Secure-Boot-Schlüssel</span>
+        <span class="check-cmd">sudo mokutil --list-enrolled</span>
+        <span class="status" data-status="pending" onclick="cycleStatus(event, this)">pending</span>
+      </div>
+      <div class="check-body">
+        <label>Output</label>
+        <div class="terminal" contenteditable="true"></div>
+        <label>Notes</label>
+        <div class="notes" contenteditable="true"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       SECTION 05 — KERNEL & MODULES
+  ============================================================ -->
+  <section class="audit" data-section="05">
+    <div class="section-head">
+      <span class="section-num">§ 05</span>
+      <h2>Kernel <em>&</em> Modules</h2>
+    </div>
+    <p class="section-desc">Modulsignaturerzwingung und Kernel Lockdown bestimmen, ob unsignierte Treiber/Firmware geladen werden können.</p>
+
+    <div class="check">
+      <div class="check-head" onclick="toggleCheck(this)">
+        <span class="check-toggle">›</span>
+        <span class="check-title">Module Signature Enforcement</span>
+        <span class="check-cmd">cat /sys/module/module/parameters/sig_enforce</span>
+        <span class="status" data-status="pending" onclick="cycleStatus(event, this)">pending</span>
+      </div>
+      <div class="check-body">
+        <label>Output</label>
+        <div class="terminal" contenteditable="true"></div>
+        <label>Notes</label>
+        <div class="notes" contenteditable="true"></div>
+      </div>
+    </div>
+
+    <div class="check">
+      <div class="check-head" onclick="toggleCheck(this)">
+        <span class="check-toggle">›</span>
+        <span class="check-title">Kernel Lockdown Mode</span>
+        <span class="check-cmd">cat /sys/kernel/security/lockdown</span>
+        <span class="status" data-status="pending" onclick="cycleStatus(event, this)">pending</span>
+      </div>
+      <div class="check-body">
+        <label>Output</label>
+        <div class="terminal" contenteditable="true"></div>
+        <label>Notes</label>
+        <div class="notes" contenteditable="true"></div>
+      </div>
+    </div>
+
+    <div class="check">
+      <div class="check-head" onclick="toggleCheck(this)">
+        <span class="check-toggle">›</span>
+        <span class="check-title">TPM Status</span>
+        <span class="check-cmd">sudo tpm2_getcap properties-fixed</span>
+        <span class="status" data-status="pending" onclick="cycleStatus(event, this)">pending</span>
+      </div>
+      <div class="check-body">
+        <label>Output</label>
+        <div class="terminal" contenteditable="true"></div>
+        <label>Notes</label>
+        <div class="notes" contenteditable="true"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       SECTION 06 — DEEP AUDIT (CHIPSEC)
+  ============================================================ -->
+  <section class="audit" data-section="06">
+    <div class="section-head">
+      <span class="section-num">§ 06</span>
+      <h2>Deep Audit · CHIPSEC</h2>
+    </div>
+    <p class="section-desc">Optionale Tiefenprüfung der Plattform-Schutzmechanismen: BIOS-Schreibschutz, BootGuard, SMM-Lockdown.</p>
+
+    <div class="check">
+      <div class="check-head" onclick="toggleCheck(this)">
+        <span class="check-toggle">›</span>
+        <span class="check-title">CHIPSEC Vollanalyse</span>
+        <span class="check-cmd">sudo chipsec_main</span>
+        <span class="status" data-status="pending" onclick="cycleStatus(event, this)">pending</span>
+      </div>
+      <div class="check-body">
+        <label>Output</label>
+        <div class="terminal" contenteditable="true"></div>
+        <label>Notes</label>
+        <div class="notes" contenteditable="true"></div>
+      </div>
+    </div>
+
+    <div class="check">
+      <div class="check-head" onclick="toggleCheck(this)">
+        <span class="check-toggle">›</span>
+        <span class="check-title">Secure Boot Variablen</span>
+        <span class="check-cmd">sudo chipsec_main -m common.secureboot.variables</span>
+        <span class="status" data-status="pending" onclick="cycleStatus(event, this)">pending</span>
+      </div>
+      <div class="check-body">
+        <label>Output</label>
+        <div class="terminal" contenteditable="true"></div>
+        <label>Notes</label>
+        <div class="notes" contenteditable="true"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       FINAL ASSESSMENT
+  ============================================================ -->
+  <section class="audit">
+    <div class="section-head">
+      <span class="section-num">§ 07</span>
+      <h2>Final <em>Assessment</em></h2>
+    </div>
+    <p class="section-desc">Gesamtbewertung, Empfehlungen, offene Risiken.</p>
+
+    <div class="check open">
+      <div class="check-head" onclick="toggleCheck(this)">
+        <span class="check-toggle">›</span>
+        <span class="check-title">Auditor Conclusion</span>
+        <span class="check-cmd">summary</span>
+        <span class="status" data-status="pending" onclick="cycleStatus(event, this)">pending</span>
+      </div>
+      <div class="check-body">
+        <label>Findings & Recommendations</label>
+        <div class="notes" contenteditable="true" style="min-height: 200px;"></div>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <div>End of Report · Document classified internal</div>
+    <div class="signature">— signed by hand —</div>
+  </footer>
+
+</div>
+
+<!-- ===== TOOLBAR ===== -->
+<div class="toolbar">
+  <button onclick="document.getElementById('import-input').click()">Import JSON</button>
+  <input type="file" id="import-input" accept=".json,application/json" style="display:none" onchange="importJSON(this)">
+  <button onclick="expandAll()">Expand All</button>
+  <button onclick="collapseAll()">Collapse</button>
+  <button onclick="exportJSON()">Export JSON</button>
+  <button onclick="window.print()">Print / PDF</button>
+</div>
+
+<script>
+  // ── Datum setzen ──
+  const d = new Date();
+  document.getElementById('report-date').textContent =
+    d.toISOString().split('T')[0] + ' ' + d.toTimeString().split(' ')[0];
+
+  // ── Akkordeon ──
+  function toggleCheck(headEl) {
+    headEl.parentElement.classList.toggle('open');
+  }
+
+  function expandAll() {
+    document.querySelectorAll('.check').forEach(c => c.classList.add('open'));
+  }
+
+  function collapseAll() {
+    document.querySelectorAll('.check').forEach(c => c.classList.remove('open'));
+  }
+
+  // ── Status-Cycling ──
+  const STATUSES = ['pending', 'pass', 'warn', 'fail'];
+  function cycleStatus(e, el) {
+    e.stopPropagation();
+    const cur = el.getAttribute('data-status');
+    const next = STATUSES[(STATUSES.indexOf(cur) + 1) % STATUSES.length];
+    el.setAttribute('data-status', next);
+    el.textContent = next;
+    updateCounters();
+  }
+
+  function updateCounters() {
+    const counts = { pending: 0, pass: 0, warn: 0, fail: 0 };
+    document.querySelectorAll('.status').forEach(s => {
+      counts[s.getAttribute('data-status')]++;
+    });
+    document.getElementById('cnt-pass').textContent = counts.pass;
+    document.getElementById('cnt-warn').textContent = counts.warn;
+    document.getElementById('cnt-fail').textContent = counts.fail;
+    document.getElementById('cnt-pending').textContent = counts.pending;
+  }
+
+  // ── JSON Export ──
+  function exportJSON() {
+    const data = {
+      report_id: document.getElementById('report-id').textContent,
+      generated: document.getElementById('report-date').textContent,
+      meta: {},
+      summary: {},
+      sections: []
+    };
+    document.querySelectorAll('.meta-cell').forEach(c => {
+      data.meta[c.querySelector('label').textContent] = c.querySelector('.value').textContent;
+    });
+    const counts = { pending: 0, pass: 0, warn: 0, fail: 0 };
+    document.querySelectorAll('section.audit').forEach(s => {
+      const sec = {
+        id: s.getAttribute('data-section') || '',
+        title: s.querySelector('h2').textContent,
+        checks: []
+      };
+      s.querySelectorAll('.check').forEach(ch => {
+        const status = ch.querySelector('.status').getAttribute('data-status');
+        counts[status] = (counts[status] || 0) + 1;
+        sec.checks.push({
+          title:   ch.querySelector('.check-title').textContent,
+          command: ch.querySelector('.check-cmd')?.textContent || '',
+          status:  status,
+          output:  ch.querySelector('.terminal')?.innerText || '',
+          notes:   ch.querySelector('.notes')?.innerText || ''
+        });
+      });
+      data.sections.push(sec);
+    });
+    data.summary = counts;
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `firmware-audit-${data.report_id}-${d.toISOString().split('T')[0]}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  // ── JSON Import (from bash script output) ──
+  function importJSON(input) {
+    const file = input.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const data = JSON.parse(e.target.result);
+        applyImport(data);
+        showToast('Report imported · ' + (data.report_id || 'untitled'));
+      } catch (err) {
+        alert('Failed to parse JSON: ' + err.message);
+      }
+    };
+    reader.readAsText(file);
+    input.value = '';
+  }
+
+  function applyImport(data) {
+    if (data.report_id) document.getElementById('report-id').textContent = data.report_id;
+    if (data.generated) document.getElementById('report-date').textContent = data.generated;
+
+    if (data.meta) {
+      document.querySelectorAll('.meta-cell').forEach(cell => {
+        const label = cell.querySelector('label').textContent.trim();
+        if (data.meta[label] !== undefined) {
+          cell.querySelector('.value').textContent = data.meta[label];
+        }
+      });
+    }
+
+    if (Array.isArray(data.sections)) {
+      data.sections.forEach(sec => {
+        const sid = sec.id;
+        if (!sid) return;
+        const sectionEl = document.querySelector(`section.audit[data-section="${sid}"]`);
+        if (!sectionEl) return;
+
+        const existing = sectionEl.querySelectorAll('.check');
+        if (existing.length === 0) return;
+        const template = existing[0].cloneNode(true);
+        existing.forEach(el => el.remove());
+
+        sec.checks.forEach(check => {
+          const node = template.cloneNode(true);
+          node.classList.remove('open');
+          node.querySelector('.check-title').textContent = check.title || '';
+          const cmdEl = node.querySelector('.check-cmd');
+          if (cmdEl) cmdEl.textContent = check.command || '';
+          const statusEl = node.querySelector('.status');
+          statusEl.setAttribute('data-status', check.status || 'pending');
+          statusEl.textContent = check.status || 'pending';
+          const term = node.querySelector('.terminal');
+          if (term) term.textContent = check.output || '';
+          const notes = node.querySelector('.notes');
+          if (notes) notes.textContent = check.notes || '';
+          if (check.status === 'warn' || check.status === 'fail') {
+            node.classList.add('open');
+          }
+          sectionEl.appendChild(node);
+        });
+      });
+    }
+
+    updateCounters();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  // ── Toast ──
+  function showToast(msg) {
+    const t = document.createElement('div');
+    t.textContent = msg;
+    t.style.cssText = `
+      position:fixed; bottom:80px; right:24px; z-index:200;
+      background:var(--green); color:var(--bg-0);
+      padding:12px 18px; font-family:'JetBrains Mono', monospace;
+      font-size:11px; letter-spacing:.1em; text-transform:uppercase;
+      border-radius:2px; box-shadow:0 8px 24px rgba(0,0,0,0.4);
+      transition: opacity 0.4s; opacity: 1;
+    `;
+    document.body.appendChild(t);
+    setTimeout(() => { t.style.opacity = '0'; }, 2600);
+    setTimeout(() => t.remove(), 3100);
+  }
+
+  updateCounters();
+</script>
+
+</body>
+</html>
