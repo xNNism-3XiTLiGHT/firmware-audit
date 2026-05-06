@@ -1,6 +1,6 @@
 ## Quick Start
 
-**Dependencies:**
+### Dependencies
 - bash, python3, fwupd, nvme-cli, smartmontools, ethtool, dmidecode, mokutil, tpm2-tools, chipsec
   
 ### Archlinux
