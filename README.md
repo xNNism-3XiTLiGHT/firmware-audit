@@ -1,17 +1,8 @@
 ## Quick Start
 
 **Dependencies:**
-- bash
-- python3
-- fwupd
-- nvme-cli
-- smartmontools
-- ethtool
-- dmidecode
- - mokutil
-- tpm2-tools
- - chipsec
-
+- bash, python3, fwupd, nvme-cli, smartmontools, ethtool, dmidecode, mokutil, tpm2-tools, chipsec
+  
 ### Archlinux
 ```bash
 sudo pacman -S --needed --noconfirm python3 fwupd nvme-cli smartmontools ethtool dmidecode mokutil tpm2-tools
